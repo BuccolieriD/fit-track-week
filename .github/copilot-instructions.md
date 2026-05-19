@@ -2,7 +2,7 @@
 - Mantieni l'interfaccia in italiano.
 - Preserva due pannelli affiancati: Allenamento e Alimentazione.
 - Ogni pannello deve avere 7 tab, da lunedi a domenica.
-- Usa Firebase (Auth + Firestore) per auth e persistenza quando configurato.
-- Mantieni una modalita anteprima locale se le env Firebase non sono presenti.
+- Usa Supabase (Auth + Postgres) per auth e persistenza quando configurato.
+- Mantieni una modalita anteprima locale se le env Supabase non sono presenti.
 - Evita TypeScript salvo richiesta esplicita.
-- Mantieni README e regole Firestore aggiornate quando cambia il modello dati.
+- Mantieni README e schema SQL aggiornati quando cambia il modello dati.

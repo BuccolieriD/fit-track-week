@@ -1,49 +1,26 @@
 import { PREVIEW_USER } from './constants.js'
-import { isFirebaseConfigured, publicAppUrl } from './env.js'
-import { firebaseAuth, googleProvider } from './firebase.js'
-import {
-  isSignInWithEmailLink,
-  onAuthStateChanged,
-  sendSignInLinkToEmail,
-  signInWithEmailLink,
-  signInWithPopup,
-  signOut,
-} from 'firebase/auth'
+import { isSupabaseConfigured, publicAppUrl } from './env.js'
+import { supabase } from './supabaseClient.js'
 
 const previewStorageKey = 'fit-track-preview-session'
-const emailStorageKey = 'fit-track-email-login'
 
 function getRedirectBaseUrl() {
-  return publicAppUrl || window.location.origin
-}
-
-async function resolveFirebaseSession() {
-  if (!isFirebaseConfigured || !firebaseAuth) {
-    return { session: null }
+  if (!publicAppUrl) {
+    return window.location.origin
   }
 
-  if (isSignInWithEmailLink(firebaseAuth, window.location.href)) {
-    const storedEmail = window.localStorage.getItem(emailStorageKey)
-    const email = storedEmail || window.prompt('Inserisci la tua email per completare l\'accesso')
+  const configuredIsLocal = /localhost|127\.0\.0\.1/i.test(publicAppUrl)
+  const runningIsLocal = /localhost|127\.0\.0\.1/i.test(window.location.hostname)
 
-    if (email) {
-      await signInWithEmailLink(firebaseAuth, email, window.location.href)
-      window.localStorage.removeItem(emailStorageKey)
-      window.history.replaceState({}, document.title, '/dashboard')
-    }
+  if (configuredIsLocal && !runningIsLocal) {
+    return window.location.origin
   }
 
-  return {
-    session: firebaseAuth.currentUser
-      ? {
-          user: firebaseAuth.currentUser,
-        }
-      : null,
-  }
+  return publicAppUrl
 }
 
 export async function getCurrentSession() {
-  if (!isFirebaseConfigured) {
+  if (!isSupabaseConfigured) {
     const previewSession = window.localStorage.getItem(previewStorageKey)
 
     return {
@@ -55,40 +32,36 @@ export async function getCurrentSession() {
     }
   }
 
-  return resolveFirebaseSession()
+  const { data, error } = await supabase.auth.getSession()
+
+  if (error) {
+    throw error
+  }
+
+  return data
 }
 
 export async function signInWithProvider(provider) {
-  if (!isFirebaseConfigured || !firebaseAuth) {
+  if (!isSupabaseConfigured) {
     return {
-      error: new Error('Configura Firebase per abilitare il login social.'),
+      error: new Error('Configura Supabase per abilitare il login social.'),
     }
   }
 
-  if (provider !== 'google') {
-    return {
-      error: new Error('Provider non supportato. Usa Google.'),
-    }
-  }
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: {
+      redirectTo: `${getRedirectBaseUrl()}/dashboard`,
+    },
+  })
 
-  try {
-    const result = await signInWithPopup(firebaseAuth, googleProvider)
-
-    return {
-      data: { user: result.user },
-      error: null,
-    }
-  } catch (error) {
-    return {
-      error,
-    }
-  }
+  return { data, error }
 }
 
 export async function signInWithEmail(email) {
-  if (!isFirebaseConfigured || !firebaseAuth) {
+  if (!isSupabaseConfigured) {
     return {
-      error: new Error('Configura Firebase per abilitare il login con email.'),
+      error: new Error('Configura Supabase per abilitare il login con email.'),
     }
   }
 
@@ -100,44 +73,29 @@ export async function signInWithEmail(email) {
     }
   }
 
-  window.localStorage.setItem(emailStorageKey, normalizedEmail)
+  const { data, error } = await supabase.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: {
+      emailRedirectTo: `${getRedirectBaseUrl()}/dashboard`,
+    },
+  })
 
-  const actionCodeSettings = {
-    url: `${getRedirectBaseUrl()}/dashboard`,
-    handleCodeInApp: true,
-  }
-
-  try {
-    await sendSignInLinkToEmail(firebaseAuth, normalizedEmail, actionCodeSettings)
-
-    return {
-      data: { email: normalizedEmail },
-      error: null,
-    }
-  } catch (error) {
-    return {
-      error,
-    }
-  }
+  return { data, error }
 }
 
 export async function signOutUser() {
-  if (!isFirebaseConfigured || !firebaseAuth) {
+  if (!isSupabaseConfigured) {
     window.localStorage.removeItem(previewStorageKey)
     return { error: null }
   }
 
-  try {
-    await signOut(firebaseAuth)
+  const { error } = await supabase.auth.signOut()
 
-    return { error: null }
-  } catch (error) {
-    return { error }
-  }
+  return { error }
 }
 
 export function subscribeToAuthChanges(callback) {
-  if (!isFirebaseConfigured || !firebaseAuth) {
+  if (!isSupabaseConfigured) {
     const handler = () => {
       callback(window.localStorage.getItem(previewStorageKey) ? { user: PREVIEW_USER } : null)
     }
@@ -149,11 +107,13 @@ export function subscribeToAuthChanges(callback) {
     }
   }
 
-  const unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
-    callback(user ? { user } : null)
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    callback(session)
   })
 
-  return { unsubscribe }
+  return subscription
 }
 
 export function enablePreviewSession() {
