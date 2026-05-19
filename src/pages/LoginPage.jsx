@@ -1,7 +1,7 @@
 import { Activity, ArrowRight, Chrome, Mail, Sparkles } from 'lucide-react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
-import { isSupabaseConfigured } from '../lib/env.js'
+import { isFirebaseConfigured } from '../lib/env.js'
 import { useAuth } from '../context/AuthContext.jsx'
 
 export function LoginPage() {
@@ -99,7 +99,7 @@ export function LoginPage() {
             </button>
           </form>
 
-          {!isSupabaseConfigured ? (
+          {!isFirebaseConfigured ? (
             <button type="button" className="button button--ghost button--wide" onClick={enablePreview}>
               <ArrowRight size={18} />
               Apri anteprima locale
@@ -107,9 +107,9 @@ export function LoginPage() {
           ) : null}
 
           <div className="inline-note">
-            {isSupabaseConfigured
-              ? 'Login Google e accesso email attivi tramite Supabase.'
-              : 'Modalita anteprima attiva: configura Supabase per usare Google o email reale.'}
+            {isFirebaseConfigured
+              ? 'Login Google e accesso email attivi tramite Firebase.'
+              : 'Modalita anteprima attiva: configura Firebase per usare Google o email reale.'}
           </div>
 
           {message ? <p className="error-text">{message}</p> : null}
