@@ -1,0 +1,8 @@
+- Progetto React JSX con Vite.
+- Mantieni l'interfaccia in italiano.
+- Preserva due pannelli affiancati: Allenamento e Alimentazione.
+- Ogni pannello deve avere 7 tab, da lunedi a domenica.
+- Usa Supabase per auth e persistenza quando configurato.
+- Mantieni una modalita anteprima locale se le env Supabase non sono presenti.
+- Evita TypeScript salvo richiesta esplicita.
+- Mantieni README e schema SQL aggiornati quando cambia il modello dati.
