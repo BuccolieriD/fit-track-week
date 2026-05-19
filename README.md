@@ -1,86 +1,101 @@
 # Fit Track Week
 
 Fit Track Week e una web app React JSX per organizzare allenamento e alimentazione su base settimanale.
-Il backend ora usa Firebase (Auth + Firestore + Hosting), con fallback in anteprima locale quando le env non sono configurate.
+Il backend usa Supabase (Auth + Postgres) con fallback in anteprima locale quando le env non sono configurate.
 
 ## Funzionalita MVP
 
-- Login Google con Firebase Authentication
-- Login email con magic link Firebase Authentication
+- Login Google con Supabase Auth
+- Login email con magic link Supabase
 - Dashboard privata con due pannelli complanari: Allenamento e Alimentazione
 - Sette tab settimanali in ogni pannello, da lunedi a domenica
-- CRUD voci giornaliere su Firestore (o localStorage in preview)
+- CRUD voci giornaliere su tabella `entries` (o localStorage in preview)
 
 ## Stack
 
 - React 19 + Vite
 - React Router
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Hosting (free tier)
+- Supabase Auth + Postgres
+- Netlify Hosting (free tier)
 
 ## Setup locale
 
 1. Installa dipendenze:
    - `npm install`
 2. Copia `.env.example` in `.env`
-3. Compila variabili Firebase web app:
-   - `VITE_FIREBASE_API_KEY`
-   - `VITE_FIREBASE_AUTH_DOMAIN`
-   - `VITE_FIREBASE_PROJECT_ID`
-   - `VITE_FIREBASE_STORAGE_BUCKET`
-   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-   - `VITE_FIREBASE_APP_ID`
+3. Compila variabili Supabase:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 4. Imposta anche:
    - `VITE_PUBLIC_APP_URL=http://localhost:5173`
-5. Avvia l'app:
+5. Avvia app:
    - `npm run dev`
 
-Se mancano le env Firebase, l'app resta usabile in modalita anteprima locale.
+Se mancano le env Supabase, l'app resta usabile in modalita anteprima locale.
 
-## Configurazione Firebase Console
+## Configurazione Supabase
 
-1. Crea un progetto Firebase
-2. Aggiungi Web App nel progetto e copia i parametri SDK
-3. Authentication -> Sign-in method:
-   - abilita `Google`
-   - abilita `Email link (passwordless sign-in)`
-4. Authentication -> Settings -> Authorized domains:
-   - aggiungi `localhost`
-   - aggiungi il dominio pubblico Firebase Hosting quando lo hai
-5. Firestore Database:
-   - crea database in modalita produzione
-   - pubblica le regole da `firestore.rules`
+1. Crea un progetto Supabase in regione UE
+2. Esegui SQL da `supabase/schema.sql`
+3. In `Authentication > Providers` abilita:
+   - `Google`
+   - `Email`
+4. In `Authentication > URL Configuration` imposta:
+   - `Site URL`: `http://localhost:5173` (in locale)
+   - `Redirect URLs`: `http://localhost:5173/dashboard`
 
-## Deploy gratuito su Firebase Hosting
+## Configurazione Google OAuth
 
-1. Installa Firebase CLI:
-   - `npm install -g firebase-tools`
-2. Login CLI:
-   - `firebase login`
-3. Inizializza progetto locale (se richiesto):
-   - `firebase use --add`
-4. Imposta `.firebaserc` con il tuo project id
-5. Build app:
+1. Google Cloud Console > OAuth client (Web application)
+2. Authorized JavaScript origins:
+   - `http://localhost:5173`
+   - dominio Netlify in produzione
+3. Authorized redirect URI:
+   - `https://<your-project-ref>.supabase.co/auth/v1/callback`
+4. Copia Client ID e Client Secret in Supabase provider Google
+
+## Deploy gratuito su Netlify
+
+### Opzione A: da GitHub
+
+1. Push del progetto su GitHub
+2. Netlify > Add new site > Import from Git
+3. Seleziona repository
+4. Build settings:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+5. Aggiungi env vars su Netlify:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_PUBLIC_APP_URL=https://tuo-sito.netlify.app`
+6. Deploy
+
+### Opzione B: Netlify CLI
+
+1. Installa CLI:
+   - `npm install -g netlify-cli`
+2. Login:
+   - `netlify login`
+3. Build:
    - `npm run build`
-6. Deploy:
-   - `firebase deploy`
+4. Deploy:
+   - `netlify deploy --prod`
 
-## URL pubblico e redirect
+Il file `netlify.toml` e gia configurato per SPA routing React.
 
-Quando hai il dominio hosting, aggiorna:
+## Post-deploy (produzione)
 
-1. `.env` locale:
-   - `VITE_PUBLIC_APP_URL=https://tuo-progetto.web.app`
-2. Firebase Authentication -> Authorized domains:
-   - `tuo-progetto.web.app`
-   - `tuo-progetto.firebaseapp.com`
-3. Firestore rules gia compatibili con autenticazione utente su `entries.user_id`
+1. In Supabase `Site URL`:
+   - `https://tuo-sito.netlify.app`
+2. In Supabase `Redirect URLs` aggiungi:
+   - `https://tuo-sito.netlify.app/dashboard`
+   - `http://localhost:5173/dashboard`
+3. In Google OAuth aggiungi dominio Netlify negli origins
 
-## Test end to end autenticazione
+## Test end to end
 
-1. Test Google login da pagina login
-2. Test Email magic link con una tua email
+1. Test login Google
+2. Test login email magic link
 3. Verifica redirect su dashboard
 4. Verifica logout e ritorno su login
-5. Verifica che ogni utente veda solo i propri dati
+5. Verifica che ogni utente veda solo i propri record
